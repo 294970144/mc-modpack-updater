@@ -1,0 +1,18 @@
+# 依赖
+node_modules/
+
+# 构建产物（作为 GitHub Release 附件发布，不进 git）
+dist/
+
+# 临时 / 缓存
+.scratch/
+*.bak
+sea-prep.blob
+*.log
+
+# 项目本地记忆（仅本地）
+.workbuddy/
+
+# 系统
+.DS_Store
+Thumbs.db

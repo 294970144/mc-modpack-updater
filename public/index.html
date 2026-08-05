@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的世界更新助手</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%237CBD56'/><rect y='9' width='16' height='7' fill='%238B6444'/></svg>">
+<link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+<!-- ================= 像素生态背景（缓慢飘动的云朵与树叶） ================= -->
+<div class="bg-scene" aria-hidden="true">
+  <div class="cloud cloud-1"></div>
+  <div class="cloud cloud-2"></div>
+  <div class="cloud cloud-3"></div>
+  <i class="leaf leaf-1"></i>
+  <i class="leaf leaf-2"></i>
+  <i class="leaf leaf-3"></i>
+  <i class="leaf leaf-4"></i>
+  <i class="leaf leaf-5"></i>
+  <i class="leaf leaf-6"></i>
+</div>
+
+<!-- ================= 顶栏 ================= -->
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-cube" aria-hidden="true"></span>
+    <div class="brand-text">
+      <h1>我的世界更新助手</h1>
+      <p>只更新变化的部分，不动你的存档和设置</p>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span class="pill pill-safe" title="存档、截图、地图、按键设置等个人数据永远不会被修改">
+      <span class="dot"></span>个人数据受保护
+    </span>
+    <button class="icon-btn" id="btn-backups" title="备份与回滚">备份</button>
+    <button class="icon-btn" id="btn-logs" title="查看运行日志">日志</button>
+  </div>
+</header>
+
+<!-- ================= 步骤条 ================= -->
+<nav class="steps" id="steps">
+  <div class="step is-active" data-step="1"><i>1</i><span>选择整合包</span></div>
+  <div class="step" data-step="2"><i>2</i><span>确认目标版本</span></div>
+  <div class="step" data-step="3"><i>3</i><span>检查变更</span></div>
+  <div class="step" data-step="4"><i>4</i><span>完成</span></div>
+</nav>
+
+<main class="wrap">
+
+  <!-- ============ 步骤 1：选包 ============ -->
+  <section class="panel" id="panel-1">
+    <div class="dropzone" id="dropzone">
+      <input type="file" id="file-input" accept=".zip,.mrpack" hidden>
+      <div class="dz-icon" aria-hidden="true">
+        <svg viewBox="0 0 64 64" width="56" height="56">
+          <rect x="8"  y="26" width="16" height="16" fill="#7CBD56"/>
+          <rect x="24" y="26" width="16" height="16" fill="#6BA748"/>
+          <rect x="40" y="26" width="16" height="16" fill="#7CBD56"/>
+          <rect x="8"  y="42" width="16" height="14" fill="#8B6444"/>
+          <rect x="24" y="42" width="16" height="14" fill="#7A573B"/>
+          <rect x="40" y="42" width="16" height="14" fill="#8B6444"/>
+          <rect x="28" y="6"  width="8"  height="14" fill="#9AA0AE"/>
+          <path d="M24 18 L32 26 L40 18 Z" fill="#9AA0AE"/>
+        </svg>
+      </div>
+      <h2 id="dz-title">将整合包拖到这里，或点击选择</h2>
+      <p class="muted" id="dz-sub">支持 PCL2 导出的 <code>.zip</code>，以及 <code>.mrpack</code></p>
+      <div class="dz-actions">
+        <button class="btn btn-primary" id="btn-pick-pack">浏览文件…</button>
+      </div>
+      <div class="dz-upload" id="dz-upload" hidden>
+        <div class="dz-upload-info">
+          <span class="dz-upload-name" id="dz-upload-name"></span>
+          <span class="dz-upload-size" id="dz-upload-size"></span>
+        </div>
+        <div class="upload-bar"><div class="upload-bar-fill" id="upload-bar-fill"></div></div>
+        <span class="dz-upload-pct" id="dz-upload-pct"></span>
+      </div>
+      <div class="dz-manual">
+        <input type="text" id="input-pack-path" placeholder="或者直接把路径粘贴到这里，回车确认" spellcheck="false">
+      </div>
+      <a href="#" class="dz-sys-link" id="dz-sys-link">用系统对话框选择（适合超大文件）</a>
+    </div>
+    <p class="hint" id="pack-hint"></p>
+  </section>
+
+  <!-- ============ 步骤 2：目标 + 范围 ============ -->
+  <section class="panel hidden" id="panel-2">
+    <div class="grid-2">
+
+      <div class="card">
+        <div class="card-head">
+          <h3>整合包</h3>
+          <button class="link-btn" id="btn-change-pack">换一个</button>
+        </div>
+        <div class="card-body" id="pack-info"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>更新到哪个版本</h3>
+          <button class="link-btn" id="btn-change-target">手动选择</button>
+        </div>
+        <div class="card-body" id="target-info"></div>
+      </div>
+
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h3>更新范围</h3>
+        <span class="muted small">没勾的整类都不会被碰</span>
+      </div>
+      <div class="card-body">
+        <div class="scope-list" id="scope-list"></div>
+        <div class="protected-note">
+          <strong>始终不会被修改：</strong>
+          存档 saves、截图、JourneyMap 地图、Xaero 小地图、服务器列表、按键与画面设置、皮肤缓存
+        </div>
+      </div>
+    </div>
+
+    <div class="actions-bar">
+      <button class="btn btn-ghost" id="btn-back-1">上一步</button>
+      <button class="btn btn-primary" id="btn-diff">开始对比</button>
+    </div>
+  </section>
+
+  <!-- ============ 步骤 3：变更列表 ============ -->
+  <section class="panel hidden" id="panel-3">
+
+    <div id="conflict-box"></div>
+    <div id="notice-box"></div>
+
+    <div class="toolbar">
+      <div class="filters" id="filters">
+        <button class="chip is-on" data-filter="all">全部</button>
+        <button class="chip" data-filter="updated">更新 <b>0</b></button>
+        <button class="chip" data-filter="added">新增 <b>0</b></button>
+        <button class="chip" data-filter="removed">移除 <b>0</b></button>
+        <button class="chip" data-filter="unchanged">无变化 <b>0</b></button>
+      </div>
+      <div class="toolbar-right">
+        <input type="search" id="search" placeholder="搜索名称 / 文件名" spellcheck="false">
+        <button class="link-btn" id="btn-check-recommend">恢复推荐勾选</button>
+        <button class="link-btn" id="btn-export">导出清单</button>
+      </div>
+    </div>
+
+    <div class="changes" id="changes"></div>
+
+    <div class="statusbar">
+      <div class="status-left" id="status-left"></div>
+      <div class="status-right">
+        <button class="btn btn-ghost" id="btn-back-2">重新对比</button>
+        <button class="btn btn-primary" id="btn-apply">应用更新</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 步骤 4：完成 ============ -->
+  <section class="panel hidden" id="panel-4">
+    <div class="done-card" id="done-card"></div>
+  </section>
+
+</main>
+
+<!-- ================= 进度遮罩 ================= -->
+<div class="overlay hidden" id="overlay">
+  <div class="overlay-box">
+    <div class="ov-head">
+      <div class="ov-title" id="ov-title">处理中…</div>
+      <div class="ov-pct" id="ov-pct">0%</div>
+    </div>
+    <div class="progress"><div class="progress-bar" id="ov-bar"></div></div>
+    <div class="ov-msg" id="ov-msg">正在准备…</div>
+    <ul class="ov-feed" id="ov-feed"></ul>
+  </div>
+</div>
+
+<!-- ================= 日志抽屉 ================= -->
+<aside class="drawer hidden" id="drawer-logs">
+  <div class="drawer-head">
+    <h3>运行日志</h3>
+    <button class="icon-btn" id="btn-close-logs">关闭</button>
+  </div>
+  <div class="drawer-body log-body" id="log-body"></div>
+</aside>
+
+<!-- ================= 备份抽屉 ================= -->
+<aside class="drawer hidden" id="drawer-backups">
+  <div class="drawer-head">
+    <h3>备份与回滚</h3>
+    <button class="icon-btn" id="btn-close-backups">关闭</button>
+  </div>
+  <div class="drawer-body" id="backup-body"></div>
+</aside>
+
+<!-- ================= 通用弹窗 ================= -->
+<div class="modal hidden" id="modal">
+  <div class="modal-box">
+    <h3 id="modal-title"></h3>
+    <div id="modal-body"></div>
+    <div class="modal-actions" id="modal-actions"></div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script src="js/api.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
