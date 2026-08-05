@@ -1,7 +1,5 @@
-node_modules/
-dist/
-.scratch/
-.workbuddy/
-package-lock.json
-*.blob
-*.exe
+(public/js/app.js, src/server.js, src/services/dialog.js are source code files, and no build artifacts, dependencies, or temp files detected in changes)
+
+```javascript
+
+```

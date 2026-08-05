@@ -86,6 +86,29 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 Add-Type -AssemblyName System.Windows.Forms -ErrorAction SilentlyContinue
 `.trim();
 
+/** PowerShell 脚本预加载 WinForms，减少每次弹窗的冷启动时间 */
+let _psWarmup = null;
+
+/** 预热 PowerShell（可选，首次调用时预先加载 WinForms） */
+function warmupPs() {
+  if (_psWarmup) return _psWarmup;
+  const warmBody = `${HEAD}\n# WinForms already loaded`;
+  const file = path.join(
+    require('os').tmpdir(),
+    `mcupdater-warmup-${process.pid}.ps1`
+  );
+  fs.writeFileSync(file, '\ufeff' + warmBody, 'utf-8');
+  const args = ['-NoProfile', '-NonInteractive', '-STA', '-ExecutionPolicy', 'Bypass', '-File', file];
+  
+  _psWarmup = new Promise((resolve) => {
+    execFile('powershell.exe', args, { windowsHide: true, maxBuffer: 1 << 20 }, (err) => {
+      try { fs.unlinkSync(file); } catch (_) { /* ignore */ }
+      resolve(!err);
+    });
+  });
+  return _psWarmup;
+}
+
 /**
  * 执行一段 PowerShell 脚本，返回 stdout 第一行非空内容（选中路径）；取消则 null。
  * 对话框用 TopMost Form 作 owner，确保弹在最上层（否则会藏在别的窗口后面）。
@@ -107,6 +130,15 @@ function runPs(body) {
 }
 
 /* ---------------- 对外接口 ---------------- */
+
+/** 应用启动时预热 PowerShell，减少首次弹窗延迟（仅当无 McDialog.exe 时） */
+function preloadDialog() {
+  const helper = findHelper();
+  if (!helper) {
+    // 没有 McDialog.exe，提前预热 PowerShell WinForms
+    warmupPs();
+  }
+}
 
 async function pickModpack(initialDir) {
   const init = initialDir && fs.existsSync(initialDir) ? initialDir : '';
@@ -168,4 +200,4 @@ function revealInExplorer(target) {
   }
 }
 
-module.exports = { pickModpack, pickFolder, revealInExplorer };
+module.exports = { pickModpack, pickFolder, revealInExplorer, preloadDialog };
