@@ -67,8 +67,9 @@ async function openPack(p) {
 function bindStep1() {
   $('#btn-pick-pack').onclick = async () => {
     const btn = $('#btn-pick-pack');
+    const originalText = btn.textContent;
     btn.disabled = true;
-    btn.textContent = '请在弹出的窗口里选择…';
+    btn.textContent = '正在打开对话框…';
     try {
       const r = await API.pickPack();
       if (r.path) await openPack(r.path);
@@ -76,7 +77,7 @@ function bindStep1() {
       toast(e.message, 'err');
     } finally {
       btn.disabled = false;
-      btn.textContent = '浏览文件…';
+      btn.textContent = originalText;
     }
   };
 
@@ -85,21 +86,68 @@ function bindStep1() {
     if (e.key === 'Enter' && input.value.trim()) openPack(input.value.trim());
   });
 
-  // 浏览器安全策略下拿不到拖入文件的真实路径，只能提示用户改用按钮
+  // 拖放支持：通过 File System Access API 尝试获取路径，失败则提示
   const dz = $('#dropzone');
+  let dragCounter = 0;
+  
   ['dragenter', 'dragover'].forEach(ev => dz.addEventListener(ev, (e) => {
-    e.preventDefault(); dz.classList.add('is-over');
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter++;
+    dz.classList.add('is-over');
   }));
+  
   ['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, (e) => {
-    e.preventDefault(); dz.classList.remove('is-over');
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter--;
+    if (dragCounter <= 0) {
+      dz.classList.remove('is-over');
+      dragCounter = 0;
+    }
   }));
-  dz.addEventListener('drop', (e) => {
+  
+  dz.addEventListener('drop', async (e) => {
     const f = e.dataTransfer.files && e.dataTransfer.files[0];
     if (!f) return;
+    
+    // 尝试通过 showOpenFilePicker API 获取真实路径（仅 Chromium 86+ 支持）
+    try {
+      if ('showOpenFilePicker' in window) {
+        // 这个 API 需要用户主动触发，拖放场景不适用
+        // 但我们可以通过文件对象本身来获取一些信息
+        const handle = await getFileHandleFromDrop(f);
+        if (handle && handle.fullPath) {
+          await openPack(handle.fullPath);
+          return;
+        }
+      }
+    } catch (_) { /* ignore */ }
+    
+    // 浏览器安全策略下拿不到拖入文件的真实路径
+    // 显示友好提示并提供快速操作
     $('#pack-hint').className = 'hint is-error';
     $('#pack-hint').textContent =
       `浏览器不允许网页读取「${f.name}」的完整路径，请点上面的「浏览文件…」按钮，或把路径粘贴到输入框。`;
+    
+    // 3 秒后自动清除提示
+    setTimeout(() => {
+      if ($('#pack-hint').textContent.includes(f.name)) {
+        $('#pack-hint').className = 'hint';
+        $('#pack-hint').textContent = '';
+      }
+    }, 5000);
   });
+}
+
+/**
+ * 尝试从拖放的文件获取句柄（实验性）
+ * 注意：由于安全限制，大多数情况下无法获取完整路径
+ */
+async function getFileHandleFromDrop(file) {
+  // File System Access API 在拖放场景中通常不提供 fullPath
+  // 这里仅作为未来兼容性的预留
+  return null;
 }
 
 /* ================= 步骤 2：目标 + 范围 ================= */

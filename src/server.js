@@ -17,6 +17,10 @@ const config = require('./config');
 const logger = require('./utils/logger');
 const { sendJson, error } = require('./utils/response');
 const { handleApi, closePack } = require('./router');
+const dialog = require('./services/dialog');
+
+// 应用启动时预热对话框（如果没有 McDialog.exe，提前加载 PowerShell WinForms）
+dialog.preloadDialog();
 
 /* ------------------------------------------------------------------ */
 /* 静态资源                                                            */
