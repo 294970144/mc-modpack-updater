@@ -391,6 +391,69 @@ code {
 .dz-actions { margin: 20px 0 14px; }
 .dz-manual  { max-width: 520px; margin: 0 auto; }
 
+/* 点击整个拖放区都能触发选择 */
+.dropzone { cursor: pointer; }
+.dropzone .dz-manual,
+.dropzone .dz-sys-link { cursor: default; }
+.dropzone input[type="text"] { cursor: text; }
+
+/* 上传进度区 */
+.dz-upload {
+  max-width: 420px; margin: 16px auto 0;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.dz-upload-info { display: flex; justify-content: space-between; font-size: 12px; }
+.dz-upload-name { font-weight: 700; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px; }
+.dz-upload-size { color: var(--muted); flex-shrink: 0; }
+.upload-bar {
+  height: 14px; background: var(--edge-soft, #e8dcc8);
+  border: 2px solid var(--edge); border-radius: var(--r-sm);
+  overflow: hidden; position: relative;
+  box-shadow: inset 0 2px 0 rgba(46,36,26,.08);
+}
+.upload-bar-fill {
+  height: 100%; width: 0%;
+  background: repeating-linear-gradient(90deg, var(--grass) 0 10px, var(--grass-d) 10px 20px);
+  transition: width .15s ease;
+}
+.dz-upload-pct { text-align: center; font-size: 12px; font-weight: 700; color: var(--grass-d); }
+
+/* 系统对话框链接 */
+.dz-sys-link {
+  display: inline-block; margin-top: 10px;
+  font-size: 12px; color: var(--muted);
+  text-decoration: underline; text-decoration-color: transparent;
+  transition: color .15s, text-decoration-color .15s;
+}
+.dz-sys-link:hover { color: var(--dirt); text-decoration-color: var(--dirt); }
+
+/* 整页拖放遮罩 */
+.drag-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(46,36,26,.55);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none; opacity: 0;
+  transition: opacity .2s ease;
+}
+.drag-overlay.is-active { opacity: 1; }
+.drag-overlay-box {
+  background: var(--card);
+  border: 4px dashed var(--grass-d);
+  border-radius: var(--r-lg);
+  padding: 48px 64px;
+  text-align: center;
+  box-shadow: 0 0 40px var(--grass-glow);
+  transform: scale(.95);
+  transition: transform .2s ease;
+}
+.drag-overlay.is-active .drag-overlay-box { transform: scale(1); }
+.drag-overlay-box h3 {
+  font-size: 22px; font-weight: 800; color: var(--ink);
+  text-shadow: 2px 2px 0 rgba(123,189,86,.3);
+}
+.drag-overlay-box p { margin-top: 8px; color: var(--muted); font-size: 14px; }
+
 input[type="text"], input[type="search"] {
   width: 100%;
   font: inherit; font-size: 13px;

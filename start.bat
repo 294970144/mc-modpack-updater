@@ -1,26 +1,25 @@
 @echo off
-chcp 65001 >nul
-title 我的世界更新助手
+title Minecraft Update Assistant
 
 echo.
-echo   ┌──────────────────────────────────────────┐
-echo   │          我的世界更新助手 v1.0.0          │
-echo   │     只更新变化的部分，不动存档和设置       │
-echo   └──────────────────────────────────────────┘
+echo  ==========================================
+echo   Minecraft Update Assistant  v1.1.0
+echo   Updates only changed files, keeps your saves
+echo  ==========================================
 echo.
 
 if not exist "src\server.js" (
-    echo   [错误] 没有找到 src\server.js，请先解压完整文件
+    echo   [Error] src\server.js not found. Please extract the full package.
     pause >nul
     exit /b 1
 )
 
-echo   正在启动…
+echo   Starting...
 node src\server.js --open
 
 if %errorlevel% neq 0 (
     echo.
-    echo   [错误] 启动失败，请检查是否安装了 Node.js
-    echo   下载地址：https://nodejs.org/zh-cn/download
+    echo   [Error] Failed to start. Please check that Node.js is installed.
+    echo   Download: https://nodejs.org/zh-cn/download
     pause >nul
 )

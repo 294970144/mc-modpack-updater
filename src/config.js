@@ -7,7 +7,7 @@ module.exports = {
   PORT: 8091,
   HOST: '127.0.0.1',
   APP_NAME: '我的世界更新助手',
-  APP_VERSION: '1.0.0',
+  APP_VERSION: '1.1.0',
 
   // ---------- PCL2 探测 ----------
   PCL2_DEFAULT_ROOTS: [

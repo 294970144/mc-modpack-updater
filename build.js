@@ -59,7 +59,7 @@ function banner() {
 
 function esbuild() {
   console.log('[1/4] esbuild 打包…');
-  const esbuildPath = path.join(ROOT, 'node_modules', '.bin', 'esbuild');
+  const esbuildPath = path.join(ROOT, 'node_modules', '.bin', 'esbuild.cmd');
   const src = path.join(ROOT, 'src', 'server.js');
   const out = path.join(DIST, 'server.cjs');
 
@@ -116,9 +116,9 @@ function buildExe() {
   const tmpExe = path.join(DIST, `_build_tmp_${process.pid}_${Date.now()}.exe`);
   if (fs.existsSync(tmpExe)) { try { fs.unlinkSync(tmpExe); } catch (_) { /* ignore */ } }
 
-  const postjectPath = path.join(ROOT, 'node_modules', '.bin', 'postject');
+  const postjectPath = path.join(ROOT, 'node_modules', '.bin', 'postject.cmd');
   if (!fs.existsSync(postjectPath)) {
-    console.error('  ✗ 找不到 postject，需要先 npm install');
+    console.error('  ✗ 找不到 postject.cmd，需要先 npm install');
     process.exit(1);
   }
 

@@ -53,6 +53,7 @@
   <!-- ============ 步骤 1：选包 ============ -->
   <section class="panel" id="panel-1">
     <div class="dropzone" id="dropzone">
+      <input type="file" id="file-input" accept=".zip,.mrpack" hidden>
       <div class="dz-icon" aria-hidden="true">
         <svg viewBox="0 0 64 64" width="56" height="56">
           <rect x="8"  y="26" width="16" height="16" fill="#7CBD56"/>
@@ -65,14 +66,23 @@
           <path d="M24 18 L32 26 L40 18 Z" fill="#9AA0AE"/>
         </svg>
       </div>
-      <h2>选择服主发的整合包</h2>
-      <p class="muted">支持 PCL2 导出的 <code>.zip</code>，以及 <code>.mrpack</code></p>
+      <h2 id="dz-title">将整合包拖到这里，或点击选择</h2>
+      <p class="muted" id="dz-sub">支持 PCL2 导出的 <code>.zip</code>，以及 <code>.mrpack</code></p>
       <div class="dz-actions">
         <button class="btn btn-primary" id="btn-pick-pack">浏览文件…</button>
+      </div>
+      <div class="dz-upload" id="dz-upload" hidden>
+        <div class="dz-upload-info">
+          <span class="dz-upload-name" id="dz-upload-name"></span>
+          <span class="dz-upload-size" id="dz-upload-size"></span>
+        </div>
+        <div class="upload-bar"><div class="upload-bar-fill" id="upload-bar-fill"></div></div>
+        <span class="dz-upload-pct" id="dz-upload-pct"></span>
       </div>
       <div class="dz-manual">
         <input type="text" id="input-pack-path" placeholder="或者直接把路径粘贴到这里，回车确认" spellcheck="false">
       </div>
+      <a href="#" class="dz-sys-link" id="dz-sys-link">用系统对话框选择（适合超大文件）</a>
     </div>
     <p class="hint" id="pack-hint"></p>
   </section>

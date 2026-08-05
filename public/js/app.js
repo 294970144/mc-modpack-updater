@@ -65,89 +65,132 @@ async function openPack(p) {
 }
 
 function bindStep1() {
-  $('#btn-pick-pack').onclick = async () => {
-    const btn = $('#btn-pick-pack');
-    const originalText = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = '正在打开对话框…';
-    try {
-      const r = await API.pickPack();
-      if (r.path) await openPack(r.path);
-    } catch (e) {
-      toast(e.message, 'err');
-    } finally {
-      btn.disabled = false;
-      btn.textContent = originalText;
-    }
+  const dz = $('#dropzone');
+  const fileInput = $('#file-input');
+
+  /* ---- 点击 dropzone → 浏览器原生文件对话框（瞬间弹出） ---- */
+  dz.addEventListener('click', (e) => {
+    // 点输入框 / 系统对话框链接时不触发
+    if (e.target.closest('.dz-manual, .dz-sys-link')) return;
+    fileInput.click();
+  });
+
+  fileInput.addEventListener('change', () => {
+    const f = fileInput.files[0];
+    if (f) handleFile(f);
+    fileInput.value = ''; // 允许选同一个文件
+  });
+
+  /* ---- "浏览文件…" 按钮 → 也是触发原生对话框 ---- */
+  $('#btn-pick-pack').onclick = (e) => {
+    e.stopPropagation();
+    fileInput.click();
   };
 
+  /* ---- 处理选中的文件：校验 → 上传 → 打开 ---- */
+  async function handleFile(file) {
+    const lower = file.name.toLowerCase();
+    if (!lower.endsWith('.zip') && !lower.endsWith('.mrpack')) {
+      $('#pack-hint').className = 'hint is-error';
+      $('#pack-hint').textContent = `不支持的文件类型：${file.name}（请选择 .zip 或 .mrpack）`;
+      return;
+    }
+
+    // 超过 512MB 提示用路径粘贴
+    const MAX = 512 * 1024 * 1024;
+    if (file.size > MAX) {
+      $('#pack-hint').className = 'hint is-error';
+      $('#pack-hint').textContent = `文件太大（${bytes(file.size)}），请把文件路径粘贴到下面的输入框，或点「用系统对话框选择」`;
+      return;
+    }
+
+    // 显示上传进度
+    const uploadEl = $('#dz-upload');
+    const nameEl = $('#dz-upload-name');
+    const sizeEl = $('#dz-upload-size');
+    const fillEl = $('#upload-bar-fill');
+    const pctEl = $('#dz-upload-pct');
+    uploadEl.hidden = false;
+    nameEl.textContent = file.name;
+    sizeEl.textContent = bytes(file.size);
+    fillEl.style.width = '0%';
+    pctEl.textContent = '上传中… 0%';
+    $('#pack-hint').textContent = '';
+
+    try {
+      const result = await API.uploadPack(file, (loaded, total) => {
+        const pct = total > 0 ? Math.round((loaded / total) * 100) : 0;
+        fillEl.style.width = pct + '%';
+        pctEl.textContent = `上传中… ${pct}%`;
+      });
+      uploadEl.hidden = true;
+      await openPack(result.path);
+    } catch (e) {
+      uploadEl.hidden = true;
+      $('#pack-hint').className = 'hint is-error';
+      $('#pack-hint').textContent = e.message;
+      toast(e.message, 'err', 5000);
+    }
+  }
+
+  // 暴露给整页拖放用
+  bindStep1._handleFile = handleFile;
+
+  /* ---- 路径粘贴 ---- */
   const input = $('#input-pack-path');
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && input.value.trim()) openPack(input.value.trim());
   });
 
-  // 拖放支持：通过 File System Access API 尝试获取路径，失败则提示
-  const dz = $('#dropzone');
-  let dragCounter = 0;
-  
-  ['dragenter', 'dragover'].forEach(ev => dz.addEventListener(ev, (e) => {
+  /* ---- 系统对话框链接（PowerShell，适合超大文件） ---- */
+  $('#dz-sys-link').onclick = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    dragCounter++;
-    dz.classList.add('is-over');
-  }));
-  
-  ['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounter--;
-    if (dragCounter <= 0) {
-      dz.classList.remove('is-over');
-      dragCounter = 0;
-    }
-  }));
-  
-  dz.addEventListener('drop', async (e) => {
-    const f = e.dataTransfer.files && e.dataTransfer.files[0];
-    if (!f) return;
-    
-    // 尝试通过 showOpenFilePicker API 获取真实路径（仅 Chromium 86+ 支持）
+    const link = $('#dz-sys-link');
+    const oldText = link.textContent;
+    link.textContent = '正在弹出系统对话框…';
     try {
-      if ('showOpenFilePicker' in window) {
-        // 这个 API 需要用户主动触发，拖放场景不适用
-        // 但我们可以通过文件对象本身来获取一些信息
-        const handle = await getFileHandleFromDrop(f);
-        if (handle && handle.fullPath) {
-          await openPack(handle.fullPath);
-          return;
-        }
-      }
-    } catch (_) { /* ignore */ }
-    
-    // 浏览器安全策略下拿不到拖入文件的真实路径
-    // 显示友好提示并提供快速操作
-    $('#pack-hint').className = 'hint is-error';
-    $('#pack-hint').textContent =
-      `浏览器不允许网页读取「${f.name}」的完整路径，请点上面的「浏览文件…」按钮，或把路径粘贴到输入框。`;
-    
-    // 3 秒后自动清除提示
-    setTimeout(() => {
-      if ($('#pack-hint').textContent.includes(f.name)) {
-        $('#pack-hint').className = 'hint';
-        $('#pack-hint').textContent = '';
-      }
-    }, 5000);
-  });
-}
+      const r = await API.pickPack();
+      if (r.path) await openPack(r.path);
+    } catch (err) {
+      toast(err.message, 'err');
+    } finally {
+      link.textContent = oldText;
+    }
+  };
 
-/**
- * 尝试从拖放的文件获取句柄（实验性）
- * 注意：由于安全限制，大多数情况下无法获取完整路径
- */
-async function getFileHandleFromDrop(file) {
-  // File System Access API 在拖放场景中通常不提供 fullPath
-  // 这里仅作为未来兼容性的预留
-  return null;
+  /* ---- 整页拖放遮罩 ---- */
+  let dragCounter = 0;
+  const overlayEl = document.createElement('div');
+  overlayEl.className = 'drag-overlay';
+  overlayEl.innerHTML = `
+    <div class="drag-overlay-box">
+      <h3>📦 松手即可打开</h3>
+      <p>支持 .zip 和 .mrpack 整合包</p>
+    </div>`;
+  document.body.appendChild(overlayEl);
+
+  document.addEventListener('dragenter', (e) => {
+    if (!e.dataTransfer || !e.dataTransfer.types.includes('Files')) return;
+    e.preventDefault();
+    dragCounter++;
+    overlayEl.classList.add('is-active');
+  });
+  document.addEventListener('dragover', (e) => {
+    if (e.dataTransfer && e.dataTransfer.types.includes('Files')) e.preventDefault();
+  });
+  document.addEventListener('dragleave', (e) => {
+    dragCounter--;
+    if (dragCounter <= 0) { dragCounter = 0; overlayEl.classList.remove('is-active'); }
+  });
+  document.addEventListener('drop', (e) => {
+    if (!e.dataTransfer || !e.dataTransfer.files.length) return;
+    e.preventDefault();
+    dragCounter = 0;
+    overlayEl.classList.remove('is-active');
+    const f = e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  });
 }
 
 /* ================= 步骤 2：目标 + 范围 ================= */

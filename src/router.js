@@ -8,6 +8,7 @@
  */
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 const config = require('./config');
@@ -304,6 +305,64 @@ const routes = {
     const body = await readBody(req);
     const ok = dialog.revealInExplorer(body.path);
     return ok ? success({ ok }) : error('NOT_FOUND', '路径不存在');
+  },
+
+  /* ---------- 上传整合包（浏览器拖放 / 原生对话框选的文件） ---------- */
+
+  'POST /api/upload-pack': async (req, res, params) => {
+    if (state.busy) return error('BUSY', '有操作正在进行中，请稍后');
+
+    // 文件名走 query 参数，文件内容走 raw body（octet-stream）
+    const fileName = String(params.get('name') || '').trim();
+    if (!fileName) return error('BAD_REQUEST', '缺少文件名参数');
+    const lower = fileName.toLowerCase();
+    if (!lower.endsWith('.zip') && !lower.endsWith('.mrpack')) {
+      return error('BAD_REQUEST', '只支持 .zip 和 .mrpack 文件');
+    }
+
+    // 大小检查：Content-Length 不可靠（可能缺失），但先挡一道
+    const declared = parseInt(req.headers['content-length'] || '0', 10);
+    const MAX_UPLOAD = 512 * 1024 * 1024; // 512MB
+    if (declared > MAX_UPLOAD) {
+      return error('TOO_LARGE', `文件太大（${formatBytes(declared)}），请改用路径粘贴或系统对话框选择`);
+    }
+
+    // 流式写入临时文件
+    const tmpFile = path.join(os.tmpdir(), `mcupdater-upload-${process.pid}-${Date.now()}-${fileName.replace(/[^\w.\-]/g, '_')}`);
+    logger.info(`上传中 → ${tmpFile}`);
+
+    const writeStream = fs.createWriteStream(tmpFile);
+    let received = 0;
+    let tooLarge = false;
+
+    await new Promise((resolve) => {
+      req.on('data', (chunk) => {
+        received += chunk.length;
+        if (received > MAX_UPLOAD) {
+          tooLarge = true;
+          req.destroy();
+          return;
+        }
+        writeStream.write(chunk);
+      });
+      req.on('end', () => { writeStream.end(() => resolve()); });
+      req.on('error', () => { writeStream.destroy(); resolve(); });
+      writeStream.on('error', () => { resolve(); });
+    });
+
+    if (tooLarge) {
+      try { fs.unlinkSync(tmpFile); } catch (_) { /* ignore */ }
+      return error('TOO_LARGE', `文件太大（已接收 ${formatBytes(received)}），请改用路径粘贴或系统对话框选择`);
+    }
+
+    const size = fs.statSync(tmpFile).size;
+    if (size === 0) {
+      try { fs.unlinkSync(tmpFile); } catch (_) { /* ignore */ }
+      return error('BAD_REQUEST', '上传文件为空');
+    }
+
+    logger.success(`上传完成：${fileName}（${formatBytes(size)}）→ ${tmpFile}`);
+    return success({ path: tmpFile, fileName, size });
   },
 
   /* ---------- 打开整合包 ---------- */

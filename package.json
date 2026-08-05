@@ -1,6 +1,6 @@
 {
   "name": "minecraft-updater",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "我的世界更新助手 — Minecraft 整合包增量更新工具",
   "main": "src/server.js",
   "scripts": {

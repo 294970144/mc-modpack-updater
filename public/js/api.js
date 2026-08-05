@@ -110,6 +110,42 @@ const API = (() => {
     return () => { closed = true; if (es) es.close(); };
   }
 
+  /**
+   * 上传整合包文件（拖放 / 原生对话框选的 File）
+   * @param {File} file
+   * @param {(loaded:number, total:number)=>void} onProgress
+   * @returns {Promise<{path:string, fileName:string, size:number}>}
+   */
+  function uploadPack(file, onProgress) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const url = '/api/upload-pack?name=' + encodeURIComponent(file.name);
+      xhr.open('POST', url);
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && onProgress) onProgress(e.loaded, e.total);
+      };
+
+      xhr.onload = () => {
+        let data;
+        try { data = JSON.parse(xhr.responseText); }
+        catch (_) { reject(new Error(`服务返回了非法内容（HTTP ${xhr.status}）`)); return; }
+        if (!data.success) {
+          reject(new Error((data.error && data.error.message) || '上传失败'));
+          return;
+        }
+        resolve(data.data);
+      };
+
+      xhr.onerror = () => reject(new Error('网络错误，上传中断'));
+      xhr.onabort = () => reject(new Error('上传已取消'));
+
+      // raw body = 文件字节，Content-Type 用 octet-stream
+      xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+      xhr.send(file);
+    });
+  }
+
   return {
     state:       ()            => get('/api/state'),
     env:         (refresh)     => get('/api/env' + (refresh ? '?refresh=1' : '')),
@@ -117,6 +153,7 @@ const API = (() => {
     pickFolder:  (initial)     => post('/api/pick/folder', { initial }),
     reveal:      (p)           => post('/api/reveal', { path: p }),
     openPack:    (p)           => post('/api/pack', { path: p }),
+    uploadPack:  (file, cb)    => uploadPack(file, cb),
     setTarget:   (payload)     => post('/api/target', payload),
     backups:     (dir)         => get('/api/backups' + (dir ? '?dir=' + encodeURIComponent(dir) : '')),
     reset:       ()            => post('/api/reset'),
