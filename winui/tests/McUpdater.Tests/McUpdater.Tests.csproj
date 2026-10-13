@@ -1,0 +1,57 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    ============================================================================
+    M2 独立测试台
+
+    【为什么 TFM 是 net10.0 而不是 net10.0-windows10.0.26100.0】
+    Core 是纯逻辑，不碰 WinUI，也不碰任何 Windows-only API。
+    用最朴素的 net10.0 意味着：
+      - 一旦Core 里不小心写了 WinUI 依赖，这个项目立刻编译失败
+        —— 这正是「Core 纯净性」想要的强制约束，而不是靠 code review 去盯；
+      - 换平台理论上也能跑（本项目是 win64only，但约束本身有价值）。
+    主程序那边 TFM 仍是 net10.0-windows10.0.26100.0，不受影响。
+
+    【为什么用 Compile Include 反向链接，而不是把 Core 复制一份】
+    复制会产生两份实现，改了主程序那份、测试还在验旧的那份 ——
+    这是最危险的一种「测试通过但产品是错的」。
+    反向链接让 Core 源码只有一份，两个项目编译的是同一批 .cs。
+    链接方向选「测试台 → 主程序」而不是反过来：
+      - 主程序 csproj 对 Core 目录用默认 glob，**零改动**；
+      - 只有测试台单点声明 Include，不会两边都写导致重复编译。
+
+    【ImplicitUsings / Nullable 必须与主程序一致】
+    否则 Core 代码在两个项目里的编译行为不同 ——比如 nullable 注解在
+    一个项目里是警告、在另一个里是错误，或者隐式 using 缺失导致编译不过。
+    同一份源码要在两种上下文里行为一致，这两项就不能有差别。
+    ============================================================================
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>McUpdater.Core.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <!-- 与主程序一致，否则同一份 Core 源码在两边编译行为不同 -->
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <!-- 测试台不需要 WinUI 的定义常量（MCU 用于区分主程序与测试台） -->
+  </PropertyGroup>
+
+  <!--
+    直链主程序的 Core 源码。路径相对本 csproj：
+    tests/McUpdater.Tests/ → ../../McUpdater/Core/**/*.cs
+    刻意不包含主程序的其它目录（Services/Backgrounds/Controls 等）——
+    那些引WinUI，链进来这个项目就编不过了。
+  -->
+  <ItemGroup>
+    <Compile Include="..\..\McUpdater\Core\**\*.cs" LinkBase="Core" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+</Project>

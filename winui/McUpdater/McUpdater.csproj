@@ -1,0 +1,127 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RootNamespace>McUpdater</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Version>1.0.0</Version>
+    <AssemblyTitle>我的世界更新助手</AssemblyTitle>
+    <Product>我的世界更新助手</Product>
+    <!-- 把 RT_GROUP_ICON 嵌进 PE：资源管理器/任务栏（未运行时）才能显示图标 -->
+    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
+    <Platforms>x64;ARM64</Platforms>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToLowerInvariant())</RuntimeIdentifier>
+    <UseWinUI>true</UseWinUI>
+    <WinUISDKReferences>false</WinUISDKReferences>
+
+    <!--
+      【必须显式写 None，勿删】
+      探针实测：本工程 WindowsPackageType 的值是**空字符串**。
+      空值意味着「没声明打包模式」，会连带两个后果：
+        1. 运行时—— 不走 unpackaged 路径，WinAppSDK 的 native 运行时
+           （Microsoft.ui.xaml.dll 等）不打包进发布目录，
+           启动即 REGDB_E_CLASSNOTREG（0x80040154类未注册）。
+        2. 构建时 —— 依赖该属性的 Target 静默跳过，.xbf / resources.pri
+           不进发布目录，构建日志照样全绿。
+      之前只写了 EnableMsixTooling=false（那是"关掉 MSIX 工具链"），
+      并以为打包模式会因此自动变None —— 不会，两者是独立开关。
+    -->
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <SelfContained>true</SelfContained>
+    <!--
+      【与 MarukoBox 的差异，勿改回true】
+      MarukoBox 保持 EnableMsixTooling=true，靠命令行 -p:EnableMsixTooling=false 覆盖；
+      本项目全程 unpackaged（范围明确不含 MSIX），直接关掉。
+
+      原因不只是「省事」：开启时 WinAppSDK 会跑 WinAppSdkValidateAppxManifestItems 任务，
+      该任务在 .NET 10 + microsoft.windows.sdk.buildtools.msix 1.7.251221100 下
+      加载 System.Security.Permissions, Version=8.0.0.0 失败，
+      报 MSB4018 FileNotFoundException —— 连 Debug build 都过不去。
+      另：unpackaged 无包身份（AUMID），MSIX 工具链本来就用不上。
+    -->
+    <EnableMsixTooling>false</EnableMsixTooling>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- 编译期常量：区分主程序与测试台（测试台用独立 csproj，不引 WinUI） -->
+    <DefineConstants>$(DefineConstants);MCU</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\AppIcon.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Manifest Include="$(ApplicationManifest)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" />
+    <!-- 2.5.1：2.4.0 在 self-contained unpackaged 下 AppNotificationManager.Register()
+         会遍历 %LOCALAPPDATA%\Application Data junction 抛 0x800701C0。
+         注：本项目只用 Picker，不发通知，但保持与 MarukoBox 一致的版本基线。 -->
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <!-- 不引 Microsoft.Windows.SDK.BuildTools.WinApp：只服务 packaged 应用的 dotnet run
+         调试身份注册（winapp CLI / AUMID）。本项目走 unpackaged，启动调试直启 exe。 -->
+  </ItemGroup>
+
+  <PropertyGroup>
+    <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
+    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
+    <!-- 【铁律】永远显式关裁剪：WinUI 3 靠反射 + x:Bind 生成代码，
+         裁剪器下手过重会导致运行时 TypeLoadException / XAML 加载崩（0xc000027b）。
+         此前靠命令行 -p:PublishTrimmed=false 压掉，这里写进 csproj 消除分叉。 -->
+    <PublishTrimmed>False</PublishTrimmed>
+  </PropertyGroup>
+
+  <!--
+    unpackaged 发布补丁
+
+    问题：dotnet publish 不会把 WinUI 3 的三类关键产物复制到发布目录：
+      (1) *.xbf  —— 编译后的 XAML（App.xbf、MainWindow.xbf、Pages/*.xbf、Controls/*.xbf）
+      (2) 应用资源索引 —— Release 配置下生成 <AssemblyName>.pri，
+          而 unpackaged 运行时只认 resources.pri
+      (3) Assets\ —— AppIcon.ico 等 Content 被丢弃，
+          导致 AppWindow.SetIcon / TitleBar.IconSource 静默失败（无图标）
+
+    缺失后果：unpackaged 应用启动即崩，事件日志报 Microsoft.UI.Xaml.dll 异常
+      0xc000027b（STATUS_FATAL_APP_EXIT，XAML 资源加载失败）。
+      托管 try/catch 与 Application.UnhandledException 都拦不住。
+
+    仅在 WindowsPackageType=None（unpackaged）时生效，不影响 MSIX 打包流程。
+
+    注意：用 %(RecursiveDir) 映射子目录，Pages/ 与 Controls/ 下的 .xbf 必须一并拷到
+    发布目录的对应子路径 —— 只拷根目录会漏，导致运行期找不到页面 XAML。
+  -->
+  <!--
+    【Condition 曾用错写法，勿改回】
+    原写法 '$(WindowsPackageType)' == 'None' 永远不会成立：实测该属性是空字符串
+    （因为 MSIX 工具链被 EnableMsixTooling=false 关掉，没人给它赋值）。
+    Target 静默跳过 → 发布目录缺 .xbf 与 resources.pri → 启动即XAML 加载失败(0xc000027b)，
+    而构建日志全绿、不给任何提示。
+
+    现在 PropertyGroup 里已显式写 <WindowsPackageType>None</WindowsPackageType>，
+    该属性有确定值，这里可以精确判断。仍保留 '!= MSIX' 写法以防将来值再变。
+  -->
+  <Target Name="CopyWinUIAssetsForUnpackagedPublish" AfterTargets="Publish"
+          Condition="'$(WindowsPackageType)' == 'None'">
+    <ItemGroup>
+      <_XbfToPublish Include="$(OutputPath)**\*.xbf" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_XbfToPublish)"
+          DestinationFiles="@(_XbfToPublish->'$(PublishDir)%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(OutputPath)$(AssemblyName).pri"
+          DestinationFiles="$(PublishDir)resources.pri"
+          Condition="Exists('$(OutputPath)$(AssemblyName).pri')"
+          SkipUnchangedFiles="true" />
+    <ItemGroup>
+      <_AssetsToPublish Include="$(OutputPath)Assets\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_AssetsToPublish)"
+          DestinationFiles="@(_AssetsToPublish->'$(PublishDir)Assets\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+</Project>

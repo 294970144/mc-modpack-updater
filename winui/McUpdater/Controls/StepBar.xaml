@@ -1,0 +1,118 @@
+<!--
+  ============================================================================
+  StepBar.xaml — 四步流程步骤条
+
+  移植自 public/index.html 第 44~49 行 + main.css 第 246~289 行（.steps / .step）。
+
+  【为什么不用 NavigationView】
+  本项目只有一条线性流程（选包 → 选目标 → 对比 → 清单），不是多页面导航。
+  NavigationView 侧边栏是为多模块切换设计的，用在这里反而是负担。
+
+  【为什么四个按钮写死而不用 ItemsControl + DataTemplate】
+  1) DataTemplate 内的 x:Name 不能作为事件处理器的接收者
+     （XAML 编译期报 x:Name 不在编译范围内），Click 事件绑不上；
+  2) 步骤数量固定为 4，ItemsControl 的动态性毫无用处，却要多引入一个
+     DataContext 类型 + 一个可见性 Converter。
+  四步固定 → 直接写死四个按钮，状态由代码统一改。简单直白。
+
+  【三态】对应 CSS 的 is-active / is-done / 默认。已完成步可点击回退。
+  ============================================================================
+-->
+<UserControl
+    x:Class="McUpdater.Controls.StepBar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    UseSystemFocusVisuals="True">
+
+  <StackPanel Orientation="Horizontal" Spacing="8">
+
+    <!-- 步骤 1 -->
+    <Button x:Name="Step1" Tag="1" Click="OnStepClick"
+            Padding="12,8,12,8" Margin="0,0,0,3"
+            HorizontalAlignment="Stretch"
+            HorizontalContentAlignment="Left"
+            Background="Transparent" BorderThickness="2" BorderBrush="Transparent"
+            CornerRadius="{StaticResource RadiusMd}">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Border x:Name="Step1Box" Width="22" Height="22" CornerRadius="4"
+                Background="{StaticResource BrushCard3}"
+                BorderBrush="{StaticResource BrushLine}" BorderThickness="2"
+                VerticalAlignment="Center">
+          <TextBlock Text="1" FontSize="12" FontWeight="Bold"
+                     Foreground="{StaticResource BrushMuted}"
+                     HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+        <TextBlock x:Name="Step1Label" Text="选择整合包" FontSize="13"
+                   VerticalAlignment="Center"
+                   Foreground="{StaticResource BrushMuted}" />
+      </StackPanel>
+    </Button>
+
+    <!-- 步骤 2 -->
+    <Button x:Name="Step2" Tag="2" Click="OnStepClick"
+            Padding="12,8,12,8" Margin="0,0,0,3"
+            HorizontalAlignment="Stretch"
+            HorizontalContentAlignment="Left"
+            Background="Transparent" BorderThickness="2" BorderBrush="Transparent"
+            CornerRadius="{StaticResource RadiusMd}">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Border x:Name="Step2Box" Width="22" Height="22" CornerRadius="4"
+                Background="{StaticResource BrushCard3}"
+                BorderBrush="{StaticResource BrushLine}" BorderThickness="2"
+                VerticalAlignment="Center">
+          <TextBlock Text="2" FontSize="12" FontWeight="Bold"
+                     Foreground="{StaticResource BrushMuted}"
+                     HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+        <TextBlock x:Name="Step2Label" Text="确认目标版本" FontSize="13"
+                   VerticalAlignment="Center"
+                   Foreground="{StaticResource BrushMuted}" />
+      </StackPanel>
+    </Button>
+
+    <!-- 步骤 3 -->
+    <Button x:Name="Step3" Tag="3" Click="OnStepClick"
+            Padding="12,8,12,8" Margin="0,0,0,3"
+            HorizontalAlignment="Stretch"
+            HorizontalContentAlignment="Left"
+            Background="Transparent" BorderThickness="2" BorderBrush="Transparent"
+            CornerRadius="{StaticResource RadiusMd}">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Border x:Name="Step3Box" Width="22" Height="22" CornerRadius="4"
+                Background="{StaticResource BrushCard3}"
+                BorderBrush="{StaticResource BrushLine}" BorderThickness="2"
+                VerticalAlignment="Center">
+          <TextBlock Text="3" FontSize="12" FontWeight="Bold"
+                     Foreground="{StaticResource BrushMuted}"
+                     HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+        <TextBlock x:Name="Step3Label" Text="检查变更" FontSize="13"
+                   VerticalAlignment="Center"
+                   Foreground="{StaticResource BrushMuted}" />
+      </StackPanel>
+    </Button>
+
+    <!-- 步骤 4 -->
+    <Button x:Name="Step4" Tag="4" Click="OnStepClick"
+            Padding="12,8,12,8" Margin="0,0,0,3"
+            HorizontalAlignment="Stretch"
+            HorizontalContentAlignment="Left"
+            Background="Transparent" BorderThickness="2" BorderBrush="Transparent"
+            CornerRadius="{StaticResource RadiusMd}">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Border x:Name="Step4Box" Width="22" Height="22" CornerRadius="4"
+                Background="{StaticResource BrushCard3}"
+                BorderBrush="{StaticResource BrushLine}" BorderThickness="2"
+                VerticalAlignment="Center">
+          <TextBlock Text="4" FontSize="12" FontWeight="Bold"
+                     Foreground="{StaticResource BrushMuted}"
+                     HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+        <TextBlock x:Name="Step4Label" Text="完成" FontSize="13"
+                   VerticalAlignment="Center"
+                   Foreground="{StaticResource BrushMuted}" />
+      </StackPanel>
+    </Button>
+
+  </StackPanel>
+</UserControl>

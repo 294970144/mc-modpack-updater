@@ -4,6 +4,21 @@ node_modules/
 # 构建产物（作为 GitHub Release 附件发布，不进 git）
 dist/
 
+# .NET / WinUI 构建产物
+# 【必须显式排除，勿删】winui/ 的 bin+obj 合计 846 MB（bin 742M / obj 96M）。
+# 不加这两行，一次 git add winui 会把约 1900 个中间产物卷进仓库 ——
+# 而真实源码只有 65 个文件。
+bin/
+obj/
+*.user
+.vs/
+*.suo
+*.userprefs
+# 发布目录（与 dist/ 同理，作为 Release 附件发布）
+publish/
+# 自检日志落盘目录（运行时产物）
+McUpdater/logs/
+
 # 临时 / 缓存
 .scratch/
 *.bak

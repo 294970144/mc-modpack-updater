@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Application
+    x:Class="McUpdater.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- 顺序要紧（实测踩过两次）：
+                     1) XamlControlsResources（框架控件默认样式）必须在最前，
+                        否则框架样式会覆盖我们自定义的像素风样式；
+                     2) 主题字典只有**一个** Theme.xaml（配色+度量+字体+控件样式
+                        合并在一起）。原先拆成 Palette + Controls 两个文件，
+                        运行时抛 XamlParseException:
+                        "The property 'FontUi' was not found in type 'Button'"
+                        —— Style 的 Setter 跨字典 StaticResource 解析不到。
+                        合并单字典从结构上消除了这类风险，详见 Theme.xaml 头部注释。
+                -->
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+                <ResourceDictionary Source="Styles/Theme.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

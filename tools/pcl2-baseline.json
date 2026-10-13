@@ -1,0 +1,164 @@
+{
+  "generatedAt": "2026-10-13T16:26:27.958Z",
+  "pack": "D:/Users/zhang/Downloads/1.21.11 1.0.6.zip",
+  "root": "E:/mc/pcl2",
+  "packMeta": {
+    "packName": "1.21.11",
+    "packVersion": "1.0.6",
+    "versionName": "1.21.11",
+    "gameVersion": "1.21.11",
+    "loader": "Fabric",
+    "loaderVersion": "0.19.3"
+  },
+  "detect": {
+    "found": true,
+    "rootCount": 1,
+    "folderCount": 3
+  },
+  "folders": [
+    {
+      "name": "当前文件夹",
+      "path": "E:/mc/pcl2/.minecraft",
+      "source": "log",
+      "isSelected": false,
+      "pcl2Root": "E:/mc/pcl2"
+    },
+    {
+      "name": "yks",
+      "path": "E:/mc/pcl2/yks/.minecraft",
+      "source": "log",
+      "isSelected": false,
+      "pcl2Root": "E:/mc/pcl2"
+    },
+    {
+      "name": "Client1.21.11",
+      "path": "E:/mc/mc26/Client1.21.11/.minecraft",
+      "source": "log",
+      "isSelected": true,
+      "pcl2Root": "E:/mc/pcl2"
+    }
+  ],
+  "versions": [
+    {
+      "index": 0,
+      "name": "Fabulously Optimized",
+      "folderName": "当前文件夹",
+      "folderPath": "E:/mc/pcl2/.minecraft",
+      "versionDir": "E:/mc/pcl2/.minecraft/versions/Fabulously Optimized",
+      "contentDir": "E:/mc/pcl2/.minecraft/versions/Fabulously Optimized",
+      "isolated": true,
+      "isolationBasis": "files",
+      "gameVersion": "1.20.1",
+      "loader": "fabric",
+      "loaderVersion": "0.14.22",
+      "info": "正式版 1.20.1, Fabric 0.14.22",
+      "isSelected": true,
+      "folderSelected": false,
+      "modCount": 50,
+      "counts": {
+        "mods": 50,
+        "config": 1,
+        "resourcepacks": 1,
+        "shaderpacks": 1
+      },
+      "managed": false
+    },
+    {
+      "index": 1,
+      "name": "1.21.11",
+      "folderName": "yks",
+      "folderPath": "E:/mc/pcl2/yks/.minecraft",
+      "versionDir": "E:/mc/pcl2/yks/.minecraft/versions/1.21.11",
+      "contentDir": "E:/mc/pcl2/yks/.minecraft/versions/1.21.11",
+      "isolated": true,
+      "isolationBasis": "files",
+      "gameVersion": "1.21.11",
+      "loader": "fabric",
+      "loaderVersion": "0.19.3",
+      "info": "正式版 1.21.11, Fabric 0.19.3, Authlib 验证",
+      "isSelected": true,
+      "folderSelected": false,
+      "modCount": 91,
+      "counts": {
+        "mods": 91,
+        "config": 1,
+        "resourcepacks": 1,
+        "shaderpacks": 1
+      },
+      "managed": true
+    },
+    {
+      "index": 2,
+      "name": "1.21.11",
+      "folderName": "Client1.21.11",
+      "folderPath": "E:/mc/mc26/Client1.21.11/.minecraft",
+      "versionDir": "E:/mc/mc26/Client1.21.11/.minecraft/versions/1.21.11",
+      "contentDir": "E:/mc/mc26/Client1.21.11/.minecraft/versions/1.21.11",
+      "isolated": true,
+      "isolationBasis": "files",
+      "gameVersion": "1.21.11",
+      "loader": "fabric",
+      "loaderVersion": "0.19.3",
+      "info": "正式版 1.21.11, Fabric 0.19.3",
+      "isSelected": true,
+      "folderSelected": true,
+      "modCount": 95,
+      "counts": {
+        "mods": 95,
+        "config": 1,
+        "resourcepacks": 1,
+        "shaderpacks": 1
+      },
+      "managed": true
+    }
+  ],
+  "ranked": [
+    {
+      "name": "1.21.11",
+      "folderName": "Client1.21.11",
+      "contentDir": "E:/mc/mc26/Client1.21.11/.minecraft/versions/1.21.11",
+      "score": 195,
+      "why": [
+        "版本名完全一致",
+        "同为 1.21.11",
+        "同为 fabric",
+        "之前用本工具更新过",
+        "PCL2 当前正在用"
+      ]
+    },
+    {
+      "name": "1.21.11",
+      "folderName": "yks",
+      "contentDir": "E:/mc/pcl2/yks/.minecraft/versions/1.21.11",
+      "score": 183,
+      "why": [
+        "版本名完全一致",
+        "同为 1.21.11",
+        "同为 fabric",
+        "之前用本工具更新过"
+      ]
+    },
+    {
+      "name": "Fabulously Optimized",
+      "folderName": "当前文件夹",
+      "contentDir": "E:/mc/pcl2/.minecraft/versions/Fabulously Optimized",
+      "score": 28,
+      "why": [
+        "同为 fabric"
+      ]
+    }
+  ],
+  "best": {
+    "name": "1.21.11",
+    "folderName": "Client1.21.11",
+    "contentDir": "E:/mc/mc26/Client1.21.11/.minecraft/versions/1.21.11",
+    "score": 195,
+    "why": [
+      "版本名完全一致",
+      "同为 1.21.11",
+      "同为 fabric",
+      "之前用本工具更新过",
+      "PCL2 当前正在用"
+    ]
+  }
+}

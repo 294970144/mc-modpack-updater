@@ -1,0 +1,704 @@
+<!--
+  ============================================================================
+  MainWindow.xaml — 主窗口外壳
+
+  移植自 public/index.html 的整体骨架：
+    .bg-scene（背景层）→ Backgrounds/PixelBackground.xaml
+    header.topbar（顶栏）→ 本文件
+    nav.steps（步骤条）→ Controls/StepBar.xaml
+    section.panel（面板区）→ 本文件，三步各一个 Grid，用可见性切换
+
+  【M0 探针结论在本文件的应用】
+  1) 根 Grid 上设 RequestedTheme="Light" —— unpackaged 下设
+     Application.RequestedTheme 会抛 COMException 0x80131515（M0 实测）。
+  2) 所有 StaticResource 拼写由 tools/xaml_resource_lint.py 在构建前拦截。
+  3) 描边一律用 Palette 里的 ThinEdge（=3），不用 2.5（M0 像素级实测）。
+  ============================================================================
+-->
+<Window
+    x:Class="McUpdater.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:McUpdater"
+    xmlns:backgrounds="using:McUpdater.Backgrounds"
+    xmlns:controls="using:McUpdater.Controls"
+    Title="我的世界更新助手">
+
+  <!-- 【M0 实测坑】unpackaged 下必须锁浅色。像素风是暖米底 + 深棕硬边的浅色
+       固定配色，跟随系统深色会导致框架控件的白色文字落在近白卡片上不可读。
+       写在 Application.RequestedTheme 上会抛 COMException 0x80131515
+       （缺包身份），必须挂在视觉树根元素上。 -->
+  <!-- 【背景三层的叠放顺序 —— 顺序本身就是 bug 的一部分】
+       CSS 里 .bg-scene 是body 的背景，body 的渐变底色在它**下面**。
+       WinUI 没有 z-index，顺序完全由 XAML 声明先后决定（后声明的盖在上面），
+       所以渐变底色必须声明在 PixelBackground **之前**，否则不透明渐变
+       会把整层云与叶遮得严严实实 —— 实测症状：界面全对，但两帧截图零差异，
+       动画明明在跑却完全看不见。
+
+       正确层级（由下至上）：
+         1. RootGrid 的渐变底色（CSS body 的 linear-gradient）
+         2. PixelBackground 云与叶（CSS .bg-scene）
+         3. 主体内容（顶栏 / 步骤条 / 面板）—— 保持 Background="Transparent"，
+            让下面两层透出来 -->
+  <Grid x:Name="RootGrid"
+        RequestedTheme="Light">
+    <Grid.Background>
+      <!-- CSS body: linear-gradient(180deg, bg-grad-a -> bg-grad-b) -->
+      <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="{StaticResource McBgGradA}" Offset="0" />
+        <GradientStop Color="{StaticResource McBgGradB}" Offset="1" />
+      </LinearGradientBrush>
+    </Grid.Background>
+
+    <!-- ===== 背景层：飘动云朵 + 落树叶 =====
+         PixelBackground 自带 IsHitTestVisible=False，不挡任何交互 -->
+    <backgrounds:PixelBackground x:Name="Background" />
+
+    <!-- ===== 主体内容 =====
+         必须 Transparent —— 背景色由 RootGrid 提供，这里再画一次就把云叶盖住了 -->
+    <Grid Background="Transparent">
+
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+
+      <!-- ================================================================
+           顶栏（CSS header.topbar）
+           border-bottom: 3px solid var(edge); box-shadow: 0 3px 0 rgba(...)
+           ================================================================ -->
+      <Grid Grid.Row="0" Background="#E6FBF5E6"
+            BorderBrush="{StaticResource BrushEdge}"
+            BorderThickness="0,0,0,3">
+        <Grid Margin="24,12,24,12">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+
+          <!-- 品牌：草方块 + 标题 + 副标题（CSS .brand） -->
+          <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
+            <!-- CSS .brand-cube：30x30，草绿上 34% / 泥土棕下，深棕硬边 -->
+            <Grid Width="30" Height="30" CornerRadius="3"
+                  Background="{StaticResource BrushCornerBadge}"
+                  BorderBrush="{StaticResource BrushEdge}"
+                  BorderThickness="3"
+                  VerticalAlignment="Center" />
+
+            <StackPanel>
+              <!-- CSS text-shadow: 2px 2px 0 rgba(124,189,86,.28)
+                   WinUI 无文字硬投影 API，用偏移同色 TextBlock 叠出来。
+                   【互斥】此处的偏移用 Margin 实现，不是 RenderTransform
+                   —— 与 Controls.xaml 的按钮 RenderTransform 不冲突。 -->
+              <Grid>
+                <TextBlock Text="我的世界更新助手"
+                           FontSize="16" FontWeight="Bold"
+                           Foreground="#477CBD56"
+                           Margin="2,2,0,0" />
+                <TextBlock Text="我的世界更新助手"
+                           FontSize="16" FontWeight="Bold"
+                           Foreground="{StaticResource BrushInk}" />
+              </Grid>
+              <TextBlock Text="只更新变化的部分，不动你的存档和设置"
+                         FontSize="{StaticResource FontSizeSmall}"
+                         Foreground="{StaticResource BrushMuted}"
+                         Margin="0,1,0,0" />
+            </StackPanel>
+          </StackPanel>
+
+          <!-- 右侧：安全提示胶囊（CSS .pill.pill-safe） -->
+          <Border Grid.Column="2"
+                  Padding="10,4,10,4"
+                  CornerRadius="{StaticResource RadiusPill}"
+                  BorderThickness="2"
+                  BorderBrush="#8C7CBD56"
+                  Background="{StaticResource McGrassGlow}"
+                  VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Ellipse Width="6" Height="6"
+                       Fill="{StaticResource BrushGrass}"
+                       VerticalAlignment="Center" />
+              <TextBlock Text="个人数据受保护"
+                         FontSize="{StaticResource FontSizeSmall}"
+                         Foreground="{StaticResource BrushGrassDD}"
+                         VerticalAlignment="Center" />
+            </StackPanel>
+          </Border>
+        </Grid>
+      </Grid>
+
+      <!-- ================================================================
+           步骤条（CSS nav.steps）：padding: 16px 24px 0
+           ================================================================ -->
+      <controls:StepBar x:Name="StepBarControl"
+                        Grid.Row="1"
+                        Margin="24,16,24,0"
+                        HorizontalAlignment="Left"
+                        StepClicked="OnStepClicked" />
+
+      <!-- ================================================================
+           面板区：CSS main.wrap → .panel（flex column gap 16）
+           Grid 没有 Spacing 属性（那是 StackPanel 的）→ 用 Margin 制造间距
+           ================================================================ -->
+      <Grid Grid.Row="2" Margin="24,16,24,24">
+
+        <!-- ============ 步骤 1：拖放区（CSS .dropzone） ============
+             border: 3px dashed var(dirt); border-radius: 9px;
+             padding: 48px 24px 36px; text-align: center
+             【M0 坑】Background=null 会杀死 hit-test —— 拖放区必须给
+             Background="Transparent"，哪怕视觉上看不出差别。
+
+             【精简决策：2026-10-09，Master 定】
+             与Node 版（public/index.html 第 55~85 行）相比，本控件**有意省略两处**：
+               1. .dz-manual —— 「粘贴路径回车确认」的文本输入框。已删除。
+                  理由：真实用户路径只有两个来源：拖进来、或点按钮选。
+                  为一个边缘场景留一条完整的输入链路（Placeholder + KeyDown
+                  事件 + Enter 校验 + 与 picker/拖放三处共用回填逻辑）不值当。
+               2. .dz-sys-link —— 「用系统对话框选择（适合超大文件）」。未实现。
+                  理由：它依赖 IFileOpenDialog COM 降级链，
+                  而 PickerHelper 注释里已记录不加该链的三条理由
+                  （vtable 顺序易静默踩踏 / 需 STA apartment / 无真实故障证据）。
+
+             【点击范围：只有按钮可点】
+             整块拖放区**不再挂 Tapped**，只有「浏览文件…」按钮能打开选择器。
+             这同时消除了冒泡重复触发的隐患（曾弹出两个选择窗）：
+             容器与子控件不再共享同一入口，少一层判断少一类 bug。
+             拖放区本身仍可拖文件（AllowDrop + DragOver + Drop 不受影响）。 -->
+        <!-- 【精简】只有「浏览文件…」按钮可点：整块可点的 Tapped 已移除，
+         理由见上方注释。 -->
+        <Border x:Name="DropZone"
+                Background="Transparent"
+                BorderBrush="{StaticResource BrushDirt}"
+                BorderThickness="3"
+                CornerRadius="{StaticResource RadiusLg}"
+                AllowDrop="True"
+                DragEnter="OnDragEnter"
+                DragOver="OnDragOver"
+                DragLeave="OnDragLeave"
+                Drop="OnDrop">
+          <StackPanel MaxWidth="560" HorizontalAlignment="Center">
+
+            <!-- 图标：CSS .dz-icon 的 SVG（草方块 + 灰色箭头）用 Canvas 近似 -->
+            <Grid Width="56" Height="56" Margin="0,10,0,14"
+                  HorizontalAlignment="Center">
+              <Canvas>
+                <!-- 上排三块草绿方块 -->
+                <Rectangle Canvas.Left="8" Canvas.Top="16" Width="16" Height="16"
+                           Fill="{StaticResource BrushGrass}" />
+                <Rectangle Canvas.Left="24" Canvas.Top="16" Width="16" Height="16"
+                           Fill="#FF6BA748" />
+                <Rectangle Canvas.Left="40" Canvas.Top="16" Width="16" Height="16"
+                           Fill="{StaticResource BrushGrass}" />
+                <!-- 下排泥土棕 -->
+                <Rectangle Canvas.Left="8" Canvas.Top="32" Width="16" Height="14"
+                           Fill="{StaticResource BrushDirt}" />
+                <Rectangle Canvas.Left="24" Canvas.Top="32" Width="16" Height="14"
+                           Fill="#FF7A573B" />
+                <Rectangle Canvas.Left="40" Canvas.Top="32" Width="16" Height="14"
+                           Fill="{StaticResource BrushDirt}" />
+                <!-- 箭杆 + 箭头（对应 SVG 的 rect x28 y6 + path 三角） -->
+                <Rectangle Canvas.Left="28" Canvas.Top="0" Width="8" Height="12"
+                           Fill="#FF9AA0AE" />
+                <Path Fill="#FF9AA0AE" Data="M 24,10 L 32,2 L 40,10 Z" />
+              </Canvas>
+            </Grid>
+
+            <TextBlock Text="将整合包拖到这里，或点击选择"
+                       FontSize="18" FontWeight="Bold"
+                       Foreground="{StaticResource BrushInk}"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,6" />
+            <TextBlock Text="支持 PCL2 导出的 .zip，以及 .mrpack"
+                       FontSize="{StaticResource FontSizeBase}"
+                       Foreground="{StaticResource BrushMuted}"
+                       HorizontalAlignment="Center" />
+
+            <Button Content="浏览文件…"
+                    Style="{StaticResource PixelPrimaryButtonStyle}"
+                    HorizontalAlignment="Center"
+                    Margin="0,20,0,0"
+                    Click="OnPickFileClick" />
+
+            <!-- 【精简】已删除 .dz-manual 路径输入框（Node 版 public/index.html
+                 第 82~84 行）。不再有「粘贴路径回车确认」这条路：
+                 选择文件只有「拖进来」与「点按钮」两个来源。 -->
+          </StackPanel>
+        </Border>
+
+        <!-- 提示行（CSS .hint）：显示错误 / 进度文案 -->
+        <TextBlock x:Name="HintText"
+                   Text=""
+                   FontSize="13"
+                   Foreground="{StaticResource BrushMuted}"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Bottom"
+                   Margin="0,0,0,6" />
+
+        <!-- ============ 步骤 2：目标 + 范围（M3）============ -->
+        <!-- Node: public/index.html 第 91~130 行（#panel-2） -->
+        <Grid x:Name="Panel2" Visibility="Collapsed">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+
+          <!-- CSS .grid-2：两列等宽。WinUI 用 Star/Star + 间距 -->
+          <Grid Grid.Row="0" ColumnSpacing="16">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- · 整合包信息卡 · -->
+            <!-- CSS .card > card-head 类(标题 + link-btn) + .card-body(#pack-info) -->
+            <Border Grid.Column="0" Style="{StaticResource PixelCardStyle}">
+              <Grid>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0" Style="{StaticResource PixelCardHeadStyle}"
+                      ColumnSpacing="8">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Grid.Column="0" Text="整合包"
+                             FontSize="15" FontWeight="Bold"
+                             Foreground="{StaticResource BrushInk}"
+                             VerticalAlignment="Center" />
+                  <!-- CSS .link-btn「换一个」：回退到步骤 1 重新选包 -->
+                  <Button Grid.Column="1" Content="换一个"
+                          Style="{StaticResource PixelLinkButtonStyle}"
+                          Click="OnChangePackClick" />
+                </Grid>
+
+                <!-- CSS .card-body padding 14px16px + dl.kv(78px 1fr)
+【坑】Width 不能写 {StaticResource KvLabelWidth}：
+     那个资源是 x:Double，而 ColumnDefinition.Width 是 GridLength，
+     XAML 无法在运行期做 Double → GridLength 的隐式转换 ——
+     **编译全绿，真启动才抛 XamlParseException**（已实测踩到）。
+     转换能写成显式字面量或用 GridLength 类型资源，两者皆可。 -->
+                <Grid Grid.Row="1" Margin="16,14,16,16">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="78" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                  </Grid.RowDefinitions>
+
+                  <!-- Node renderPackInfo() 的四个 dt/dd 对 -->
+                  <TextBlock Grid.Row="0" Grid.Column="0" Text="名称"
+                             FontSize="{StaticResource KvFontSize}"
+                             Foreground="{StaticResource BrushMuted}" />
+                  <TextBlock x:Name="PackNameText" Grid.Row="0" Grid.Column="1"
+                             FontSize="{StaticResource KvFontSize}"
+                             Foreground="{StaticResource BrushInk}"
+                             TextWrapping="Wrap" />
+
+                  <TextBlock Grid.Row="1" Grid.Column="0" Text="游戏版本"
+                             FontSize="{StaticResource KvFontSize}"
+                             Foreground="{StaticResource BrushMuted}"
+                             Margin="0,6,0,0" />
+                  <!-- loader 标签挂在版本后面（Node: tag-green） -->
+                  <StackPanel Grid.Row="1" Grid.Column="1"
+                              Orientation="Horizontal" Spacing="6"
+                              Margin="0,6,0,0">
+                    <TextBlock x:Name="GameVersionText"
+                               FontSize="{StaticResource KvFontSize}"
+                               Foreground="{StaticResource BrushInk}"
+                               VerticalAlignment="Center" />
+                    <Border x:Name="LoaderTag"
+                            Style="{StaticResource PixelTagGreenStyle}"
+                            Visibility="Collapsed">
+                      <TextBlock x:Name="LoaderTagText" FontSize="11" FontWeight="Bold"
+                                 Foreground="{StaticResource TagGreenInk}" />
+                    </Border>
+                  </StackPanel>
+
+                  <TextBlock Grid.Row="2" Grid.Column="0" Text="内含"
+                             FontSize="{StaticResource KvFontSize}"
+                             Foreground="{StaticResource BrushMuted}"
+                             Margin="0,6,0,0" />
+                  <!-- 分类标签容器，运行时按 AppConfig.ManagedCategories 填充 -->
+                  <ItemsControl x:Name="CategoryTags"
+                                Grid.Row="2" Grid.Column="1"
+                                Margin="0,6,0,0">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                  </ItemsControl>
+
+                  <TextBlock Grid.Row="3" Grid.Column="0" Text="文件"
+                             FontSize="{StaticResource KvFontSize}"
+                             Foreground="{StaticResource BrushMuted}"
+                             Margin="0,6,0,0" />
+                  <!-- CSS .kv dd.path：等宽字体 + ink-2，路径过长时中间省略 -->
+                  <TextBlock x:Name="PackPathText" Grid.Row="3" Grid.Column="1"
+                             FontFamily="{StaticResource FontMono}"
+                             FontSize="{StaticResource FontSizeSmall}"
+                             Foreground="{StaticResource BrushInk2}"
+                             TextWrapping="Wrap"
+                             Margin="0,6,0,0" />
+                </Grid>
+              </Grid>
+            </Border>
+
+            <!-- · 目标卡（M4：扫描 PCL2 / 多实例目录 + 自动匹配） · -->
+            <!-- Node: public/index.html 第 101~107 行 + app.js renderTargetInfo -->
+            <Border Grid.Column="1" Style="{StaticResource PixelCardStyle}">
+              <Grid>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0" Style="{StaticResource PixelCardHeadStyle}"
+                      ColumnSpacing="8">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Grid.Column="0" Text="更新到哪个版本"
+                             FontSize="15" FontWeight="Bold"
+                             Foreground="{StaticResource BrushInk}"
+                             VerticalAlignment="Center" />
+                  <!-- CSS .link-btn「手动选择」：自动匹配不上时唯一的出路，
+                       所以必须常驻可点，而不是只在匹配失败时才出现。 -->
+                  <Button Grid.Column="1" Content="手动选择"
+                          Style="{StaticResource PixelLinkButtonStyle}"
+                          Click="OnChangeTargetClick" />
+                </Grid>
+
+                <Grid Grid.Row="1" Margin="16,14,16,16">
+
+                  <!-- 没匹配上：Node 的 notice-warn「没能自动认出该更新哪个版本」 -->
+                  <StackPanel x:Name="TargetMissingPanel">
+                    <TextBlock Text="没能自动认出该更新哪个版本"
+                               FontSize="{StaticResource KvFontSize}"
+                               Foreground="{StaticResource TagAmberInk}"
+                               FontWeight="Bold"
+                               TextWrapping="Wrap" />
+                    <TextBlock Text="点右上角「手动选择」指定游戏版本文件夹。"
+                               FontSize="{StaticResource FontSizeSmall}"
+                               Foreground="{StaticResource BrushMuted}"
+                               TextWrapping="Wrap"
+                               Margin="0,6,0,0" />
+                  </StackPanel>
+
+                  <!-- 匹配上了：Node renderTargetInfo 的 dl.kv（版本/现有模组/目录） -->
+                  <StackPanel x:Name="TargetMatchedPanel" Visibility="Collapsed">
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="78" />
+                        <ColumnDefinition Width="*" />
+                      </Grid.ColumnDefinitions>
+                      <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                      </Grid.RowDefinitions>
+
+                      <TextBlock Grid.Row="0" Grid.Column="0" Text="版本"
+                                 FontSize="{StaticResource KvFontSize}"
+                                 Foreground="{StaticResource BrushMuted}" />
+                      <StackPanel Grid.Row="0" Grid.Column="1">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                          <TextBlock x:Name="TargetNameText"
+                                     FontSize="{StaticResource KvFontSize}"
+                                     Foreground="{StaticResource BrushInk}" />
+                          <TextBlock x:Name="TargetFolderText"
+                                     FontSize="{StaticResource FontSizeSmall}"
+                                     Foreground="{StaticResource BrushMuted}"
+                                     VerticalAlignment="Center" />
+                        </StackPanel>
+                        <!-- 标签容器：卡宽有限（半栏），必须能换行。
+                             WinUI 没有 WrapPanel（那是 WPF 的），用 ItemsWrapGrid。 -->
+                        <ItemsControl x:Name="TargetTags" Margin="0,4,0,0">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                              <ItemsWrapGrid Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                      </StackPanel>
+
+                      <TextBlock Grid.Row="1" Grid.Column="0" Text="现有模组"
+                                 FontSize="{StaticResource KvFontSize}"
+                                 Foreground="{StaticResource BrushMuted}"
+                                 Margin="0,6,0,0" />
+                      <TextBlock x:Name="TargetModCountText" Grid.Row="1" Grid.Column="1"
+                                 FontSize="{StaticResource KvFontSize}"
+                                 Foreground="{StaticResource BrushInk}"
+                                 Margin="0,6,0,0" />
+
+                      <TextBlock Grid.Row="2" Grid.Column="0" Text="目录"
+                                 FontSize="{StaticResource KvFontSize}"
+                                 Foreground="{StaticResource BrushMuted}"
+                                 Margin="0,6,0,0" />
+                      <!-- CSS .kv dd.path：等宽字体 + ink-2 -->
+                      <TextBlock x:Name="TargetPathText" Grid.Row="2" Grid.Column="1"
+                                 FontFamily="{StaticResource FontMono}"
+                                 FontSize="{StaticResource FontSizeSmall}"
+                                 Foreground="{StaticResource BrushInk2}"
+                                 TextWrapping="Wrap"
+                                 Margin="0,6,0,0" />
+                    </Grid>
+
+                    <!-- Node: notice('warn','这些地方对不上，确认一下', ul) -->
+                    <Border x:Name="TargetWarningsBox"
+                            Visibility="Collapsed"
+                            Margin="0,8,0,0"
+                            Padding="8"
+                            Background="{StaticResource TagAmberBg}"
+                            BorderBrush="{StaticResource TagAmberEdge}"
+                            BorderThickness="2"
+                            CornerRadius="{StaticResource RadiusSm}">
+                      <StackPanel>
+                        <TextBlock Text="这些地方对不上，确认一下"
+                                   FontSize="{StaticResource FontSizeSmall}"
+                                   Foreground="{StaticResource TagAmberInk}"
+                                   FontWeight="Bold" />
+                        <ItemsControl x:Name="TargetWarnings" Margin="0,3,0,0">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                              <StackPanel />
+                            </ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                      </StackPanel>
+                    </Border>
+
+                    <!-- Node: 「自动匹配依据：…」 -->
+                    <TextBlock x:Name="TargetWhyText"
+                               FontSize="{StaticResource FontSizeSmall}"
+                               Foreground="{StaticResource BrushMuted}"
+                               TextWrapping="Wrap"
+                               Margin="0,6,0,0" />
+                  </StackPanel>
+                </Grid>
+              </Grid>
+            </Border>
+          </Grid>
+
+          <!-- · 更新范围卡 · -->
+          <!-- CSS #panel-2 第三个 .card：scope-list + protected-note -->
+          <Border Grid.Row="1" Style="{StaticResource PixelCardStyle}"
+                  Margin="0,16,0,0">
+            <Grid>
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+              </Grid.RowDefinitions>
+
+              <Grid Grid.Row="0" Style="{StaticResource PixelCardHeadStyle}"
+                    ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="更新范围"
+                           FontSize="15" FontWeight="Bold"
+                           Foreground="{StaticResource BrushInk}"
+                           VerticalAlignment="Center" />
+                <!-- CSS .muted.small「没勾的整类都不会被碰」 -->
+                <TextBlock Grid.Column="1" Text="没勾的整类都不会被碰"
+                           FontSize="{StaticResource FontSizeSmall}"
+                           Foreground="{StaticResource BrushMuted}"
+                           VerticalAlignment="Center" />
+              </Grid>
+
+              <StackPanel Grid.Row="1" Margin="16,14,16,16" Spacing="12">
+
+                <!-- CSS .scope-list：auto-fit minmax(200px,1fr) —— 窄屏折行，宽屏均分。
+     【为什么不用 UniformGrid】那是 WPF 的控件，WinUI 没有（XamlCompiler
+     报WMC0001: Unknown type）。分类数固定为 4，用四列 Grid 显式布局，
+     代码里按Index 定位列 —— 少一个 ItemsControl 模板依赖，行为也更好预测。
+     CSS 的 auto-fit 折行特性本次不做：窗口默认宽度足够放四列。 -->
+                <Grid x:Name="ScopeGrid" ColumnSpacing="10" RowSpacing="10">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                </Grid>
+
+                <!-- CSS .protected-note：明确列出永不修改的内容。
+                     这是安全承诺，必须逐字对齐 Node（public/js/app.js 第 121 行）。 -->
+                <Border Style="{StaticResource ProtectedNoteStyle}">
+                  <StackPanel>
+                    <TextBlock FontSize="{StaticResource FontSizeSmall}"
+                               Foreground="{StaticResource TagBlueInk}"
+                               FontWeight="Bold"
+                               Text="始终不会被修改：" />
+                    <TextBlock FontSize="{StaticResource FontSizeSmall}"
+                               Foreground="{StaticResource BrushInk2}"
+                               TextWrapping="Wrap"
+                               Margin="0,3,0,0"
+                               Text="存档 saves、截图、JourneyMap 地图、Xaero 小地图、服务器列表、按键与画面设置、皮肤缓存" />
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+            </Grid>
+          </Border>
+
+          <!-- · 底部操作条（CSS .actions-bar） · -->
+          <Grid Grid.Row="2" Margin="0,16,0,0"
+                ColumnSpacing="10">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="1" Content="上一步"
+                    Style="{StaticResource PixelGhostButtonStyle}"
+                    Click="OnBackToStep1Click" />
+            <!-- M5 接 diff：目标未定前禁用 -->
+            <Button x:Name="StartDiffButton" Grid.Column="2"
+                    Content="开始对比"
+                    Style="{StaticResource PixelPrimaryButtonStyle}"
+                    IsEnabled="False"
+                    Click="OnStartDiffClick" />
+          </Grid>
+        </Grid>
+
+        <!-- ============ 步骤 3：变更清单（M5）============ -->
+        <!-- Node: public/index.html 第 133~162 行（#panel-3）
+             不做 apply / 导出（不在本次范围），所以底部只有「重新对比」。 -->
+        <Grid x:Name="Panel3" Visibility="Collapsed">
+          <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="0,0,0,0">
+
+              <!-- 冲突与提示（CSS #conflict-box / #notice-box 合并成一处，
+                   因为 Node 的 renderNotices 本来就往同一个容器里拼） -->
+              <StackPanel x:Name="NoticeBox" Spacing="10" />
+
+              <!-- 工具条（CSS .toolbar）：筛选芯片 + 搜索 + 恢复推荐勾选 -->
+              <Grid Margin="0,14,0,0" ColumnSpacing="14">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel x:Name="FilterChips" Grid.Column="0"
+                            Orientation="Horizontal" Spacing="6" />
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12">
+                  <!-- CSS .toolbar-right input[type=search] width 220px -->
+                  <TextBox x:Name="SearchBox"
+                           Width="220"
+                           Style="{StaticResource PixelTextBoxStyle}"
+                           PlaceholderText="搜索名称 / 文件名"
+                           TextChanged="OnSearchTextChanged" />
+                  <Button Content="恢复推荐勾选"
+                          Style="{StaticResource PixelLinkButtonStyle}"
+                          Click="OnRestoreRecommendClick" />
+                </StackPanel>
+              </Grid>
+
+              <!-- 变更列表（CSS .changes） -->
+              <Border x:Name="ChangesBox"
+                      Margin="0,14,0,0"
+                      Style="{StaticResource PixelChangesBoxStyle}">
+                <StackPanel x:Name="ChangesList" />
+              </Border>
+
+              <!-- 底部统计栏（CSS .statusbar） -->
+              <Border Margin="0,14,0,0" Style="{StaticResource PixelCardStyle}">
+                <Grid ColumnSpacing="16">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+                  <StackPanel x:Name="StatusLeft" Grid.Column="0"
+                              Orientation="Horizontal" Spacing="0"
+                              VerticalAlignment="Center" />
+                  <Button Grid.Column="1" Content="重新对比"
+                          Style="{StaticResource PixelGhostButtonStyle}"
+                          Click="OnBackToStep2Click" />
+                </Grid>
+              </Border>
+            </StackPanel>
+          </ScrollViewer>
+        </Grid>
+      </Grid>
+    </Grid>
+
+    <!-- ===== 读包进度遮罩（CSS .overlay / .overlay-box）=====
+         声明在主体之后 → 盖在主体之上。
+         【不用 Grid 叠层】而是直接挂在 RootGrid 上做兄弟节点：
+         遮罩只需覆盖可视区，不需要参与主体布局。 -->
+    <Grid x:Name="Overlay"
+          Visibility="Collapsed"
+          Background="{StaticResource BrushOverlayScrim}">
+      <Border Style="{StaticResource OverlayBoxStyle}">
+        <StackPanel Spacing="12">
+          <!-- CSS .ov-head：标题左、百分比右 -->
+          <Grid ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="OverlayTitle" Grid.Column="0"
+                       Text="正在读取整合包"
+                       FontSize="16" FontWeight="Bold"
+                       Foreground="{StaticResource BrushInk}"
+                       VerticalAlignment="Center" />
+            <TextBlock x:Name="OverlayPct" Grid.Column="1"
+                       Text="0%"
+                       FontSize="16" FontWeight="Bold"
+                       FontFamily="{StaticResource FontMono}"
+                       Foreground="{StaticResource BrushGrassDD}"
+                       VerticalAlignment="Center" />
+          </Grid>
+
+          <!-- CSS .progress > .progress-bar（indeterminate 时为持续滑动的斜纹） -->
+          <Grid Height="14"
+                Background="#FFE8DCC8"
+                BorderBrush="{StaticResource BrushEdge}"
+                BorderThickness="3"
+                CornerRadius="{StaticResource RadiusSm}">
+            <!-- 确定进度：宽度由代码设置 -->
+            <Border x:Name="OverlayBarFill"
+                    HorizontalAlignment="Left"
+                    Width="0"
+                    Background="{StaticResource BrushGrass}"
+                    CornerRadius="2,0,0,2" />
+            <!-- 不确定进度：CSS .overlay.is-loading 用一条来回滑动的斜纹条。
+                 WinUI 无 CSS 动画，用 Storyboard 驱动一个宽条左右移动。 -->
+            <Border x:Name="OverlayBarIndeterminate"
+                    Width="90"
+                    HorizontalAlignment="Left"
+                    Margin="-100,0,0,0"
+                    Visibility="Collapsed"
+                    Background="#66FFFFFF"
+                    CornerRadius="2"
+                    RenderTransformOrigin="0,0.5">
+              <Border.RenderTransform>
+                <TranslateTransform x:Name="OverlaySlide" />
+              </Border.RenderTransform>
+            </Border>
+          </Grid>
+
+          <!-- CSS .ov-msg -->
+          <TextBlock x:Name="OverlayMsg"
+                     Text="正在解析整合包…"
+                     FontSize="{StaticResource KvFontSize}"
+                     Foreground="{StaticResource BrushMuted}"
+                     TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+    </Grid>
+  </Grid>
+</Window>

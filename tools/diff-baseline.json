@@ -1,0 +1,255 @@
+{
+  "A_有manifest": {
+    "order": [
+      "unchanged|id:alpha|alpha.jar",
+      "updated|id:bravo|bravo.jar",
+      "added|id:delta|delta.jar",
+      "removed|id:charlie|charlie.jar"
+    ],
+    "changes": [
+      {
+        "type": "unchanged",
+        "key": "id:alpha",
+        "modId": "alpha",
+        "displayName": "Alpha Mod",
+        "fileName": "alpha.jar",
+        "oldVersion": "1.0.0",
+        "newVersion": "1.0.0",
+        "checked": false,
+        "playerInstalled": "undef",
+        "reason": null,
+        "downgrade": null,
+        "renamed": false,
+        "oldFileName": "alpha.jar",
+        "duplicate": null,
+        "duplicated": null
+      },
+      {
+        "type": "updated",
+        "key": "id:bravo",
+        "modId": "bravo",
+        "displayName": "Bravo Mod",
+        "fileName": "bravo.jar",
+        "oldVersion": "1.0.0",
+        "newVersion": "2.0.0",
+        "checked": true,
+        "playerInstalled": "undef",
+        "reason": "version",
+        "downgrade": false,
+        "renamed": null,
+        "oldFileName": "bravo.jar",
+        "duplicate": null,
+        "duplicated": false
+      },
+      {
+        "type": "added",
+        "key": "id:delta",
+        "modId": "delta",
+        "displayName": "Delta Mod",
+        "fileName": "delta.jar",
+        "oldVersion": null,
+        "newVersion": "1.0.0",
+        "checked": true,
+        "playerInstalled": "undef",
+        "reason": null,
+        "downgrade": null,
+        "renamed": null,
+        "oldFileName": null,
+        "duplicate": null,
+        "duplicated": false
+      },
+      {
+        "type": "removed",
+        "key": "id:charlie",
+        "modId": "charlie",
+        "displayName": "Charlie Mod",
+        "fileName": "charlie.jar",
+        "oldVersion": "1.0.0",
+        "newVersion": null,
+        "checked": false,
+        "playerInstalled": true,
+        "reason": null,
+        "downgrade": null,
+        "renamed": null,
+        "oldFileName": null,
+        "duplicate": null,
+        "duplicated": false
+      }
+    ],
+    "conflicts": []
+  },
+  "A_无manifest": {
+    "order": [
+      "unchanged|id:alpha|alpha.jar",
+      "updated|id:bravo|bravo.jar",
+      "added|id:delta|delta.jar",
+      "removed|id:charlie|charlie.jar"
+    ],
+    "changes": [
+      {
+        "type": "unchanged",
+        "key": "id:alpha",
+        "modId": "alpha",
+        "displayName": "Alpha Mod",
+        "fileName": "alpha.jar",
+        "oldVersion": "1.0.0",
+        "newVersion": "1.0.0",
+        "checked": false,
+        "playerInstalled": "undef",
+        "reason": null,
+        "downgrade": null,
+        "renamed": false,
+        "oldFileName": "alpha.jar",
+        "duplicate": null,
+        "duplicated": null
+      },
+      {
+        "type": "updated",
+        "key": "id:bravo",
+        "modId": "bravo",
+        "displayName": "Bravo Mod",
+        "fileName": "bravo.jar",
+        "oldVersion": "1.0.0",
+        "newVersion": "2.0.0",
+        "checked": true,
+        "playerInstalled": "undef",
+        "reason": "version",
+        "downgrade": false,
+        "renamed": null,
+        "oldFileName": "bravo.jar",
+        "duplicate": null,
+        "duplicated": false
+      },
+      {
+        "type": "added",
+        "key": "id:delta",
+        "modId": "delta",
+        "displayName": "Delta Mod",
+        "fileName": "delta.jar",
+        "oldVersion": null,
+        "newVersion": "1.0.0",
+        "checked": true,
+        "playerInstalled": "undef",
+        "reason": null,
+        "downgrade": null,
+        "renamed": null,
+        "oldFileName": null,
+        "duplicate": null,
+        "duplicated": false
+      },
+      {
+        "type": "removed",
+        "key": "id:charlie",
+        "modId": "charlie",
+        "displayName": "Charlie Mod",
+        "fileName": "charlie.jar",
+        "oldVersion": "1.0.0",
+        "newVersion": null,
+        "checked": false,
+        "playerInstalled": null,
+        "reason": null,
+        "downgrade": null,
+        "renamed": null,
+        "oldFileName": null,
+        "duplicate": null,
+        "duplicated": false
+      }
+    ],
+    "conflicts": []
+  },
+  "B_本地重复": {
+    "order": [
+      "updated|id:sodium|sodium-0.8.13.jar",
+      "removed|dup::id:sodium::sodium-0.8.12.jar|sodium-0.8.12.jar",
+      "removed|dup::id:sodium::sodium-0.8.13.jar|sodium-0.8.13.jar"
+    ],
+    "changes": [
+      {
+        "type": "updated",
+        "key": "id:sodium",
+        "fileName": "sodium-0.8.13.jar",
+        "oldVersion": "0.9.0",
+        "newVersion": "0.8.13",
+        "checked": true,
+        "duplicate": null,
+        "duplicateOf": null,
+        "duplicateOfVersion": null,
+        "displayName": "Sodium"
+      },
+      {
+        "type": "removed",
+        "key": "dup::id:sodium::sodium-0.8.12.jar",
+        "fileName": "sodium-0.8.12.jar",
+        "oldVersion": "0.8.12",
+        "newVersion": null,
+        "checked": false,
+        "duplicate": true,
+        "duplicateOf": "zzz-sodium.jar - 副本.jar",
+        "duplicateOfVersion": "0.9.0",
+        "displayName": "Sodium（重复）"
+      },
+      {
+        "type": "removed",
+        "key": "dup::id:sodium::sodium-0.8.13.jar",
+        "fileName": "sodium-0.8.13.jar",
+        "oldVersion": "0.8.13",
+        "newVersion": null,
+        "checked": false,
+        "duplicate": true,
+        "duplicateOf": "zzz-sodium.jar - 副本.jar",
+        "duplicateOfVersion": "0.9.0",
+        "displayName": "Sodium（重复）"
+      }
+    ],
+    "conflicts": [
+      {
+        "side": "local",
+        "key": "id:sodium",
+        "displayName": "Sodium",
+        "files": [
+          {
+            "fileName": "sodium-0.8.12.jar",
+            "version": "0.8.12"
+          },
+          {
+            "fileName": "sodium-0.8.13.jar",
+            "version": "0.8.13"
+          },
+          {
+            "fileName": "zzz-sodium.jar - 副本.jar",
+            "version": "0.9.0"
+          }
+        ]
+      }
+    ]
+  },
+  "C_改名但内容一致": {
+    "order": [
+      "unchanged|id:sodium|[钠] sodium-fabric-0.8.13.jar"
+    ],
+    "changes": [
+      {
+        "type": "unchanged",
+        "fileName": "[钠] sodium-fabric-0.8.13.jar",
+        "oldFileName": "sodium-fabric-0.8.13.jar",
+        "renamed": true,
+        "oldVersion": "0.8.13",
+        "newVersion": "0.8.13",
+        "checked": false
+      }
+    ]
+  },
+  "D_同版本内容不同": {
+    "changes": [
+      {
+        "type": "updated",
+        "fileName": "echo.jar",
+        "oldVersion": "1.0.0",
+        "newVersion": "1.0.0",
+        "reason": "content",
+        "downgrade": false,
+        "checked": true
+      }
+    ]
+  }
+}
