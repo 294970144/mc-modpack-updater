@@ -16,7 +16,7 @@
 | 用户确认的目录／动作范围 | 保存交接；2026-10-14 追加授权**提交**（**仍未授权推送**） |
 | 接手任务编号 | （留空，未创建，在同一目录原任务上继续） |
 | 交接状态 | **材料已核对**（仅保存，未新建接续任务） |
-| 恢复后进展 | 2026-10-10 完成 **M4**；2026-10-14 完成 **M5** + 视觉验收 + **已提交** `a87be7d`（未推送） |
+| 恢复后进展 | 2026-10-10 完成 **M4**；2026-10-14 完成 **M5** + 视觉验收 + **已提交**；追加清理 `413231d`（**均未推送**） |
 
 ---
 
@@ -354,6 +354,32 @@ Node 在 `runDiff` **聚合**阶段给样本加前缀（`${cat.dir}/${s}`）。
 - **状态栏统计的是全部变更，不是当前可见的那部分** —— 否则搜索一个词会让"已勾选 N 项"跟着变
 - **`duplicate` 与 `duplicated` 互斥**（else-if），本地多余项要说"保留哪一份"
 - **`FirstRun` 决定移除项默认全不勾**（防止误删玩家自装的 mod）
+
+### 2026-10-14 追加：无用物清理（Master 指示，提交 `413231d`）
+
+| 删了 | 理由 |
+| --- | --- |
+| `winui/tools/capture_screen.py` | M0 探针，结论已被 gdigrab 整屏方案取代 |
+| `winui/tools/capture_window.py` | 同上（脚本已删，结论保留在 M0 文档里） |
+| `winui/tools/xaml_resource_lint.py` | 无人引用 |
+| `tools/xaml_comment_scan.js` | 一次性脚本，只在记忆日志里出现过 |
+| `winui/McUpdater/bin`（742 MB） | gitignore 的构建产物，可重建 |
+
+**保留 obj/**：里面有 `project.assets.json`（NuGet restore 产物）。删了要重跑
+restore，而沙箱 Bash 缺 `APPDATA/ProgramFiles/SystemRoot` 会让 restore 失败。
+**保留早期基准工具链**（`gen-baseline*.js` / `gen-diff-baseline.js` /
+`gen-real-baseline.js` / `sync-real-baseline.js` + 3 个 JSON）——C# 测试注释里
+标注了期望值来源，删了断掉可追溯性。
+
+**主工作树 `E:/mc/mc26/mcnf/我的世界toos` 一律未动**（Master 选择「都不动」）：
+`winui/.parity/`（12K 旧对比缓存）、`dist/`（83M Node 版 exe）都还在。
+
+顺带修正 `winui/M0-探针结论.md` 的「工具产物」节 —— 原贴只写了 `PrintWindow`
+方案，**实测对 WinUI 3 客户区全白**，且脚本已删除。已补上真正能用的
+gdigrab 整屏方案与两个前提（不能锁屏 / 必须 `Activate()` 之后再
+`SetWindowPos(HWND_TOPMOST)`）。
+
+`winui/` 体积 **846 MB → 104 MB**。
 
 ### 遗留任务清理（2026-10-14，Master 指示）
 
